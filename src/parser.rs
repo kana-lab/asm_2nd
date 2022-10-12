@@ -12,7 +12,7 @@ pub enum Operand {
 }
 
 #[derive(Debug)]
-pub struct Instruction(Mnemonic, Vec<Operand>);
+pub struct Instruction(pub Mnemonic, pub Vec<Operand>, pub usize, pub usize);
 
 #[derive(Debug)]
 pub enum ParseError {
@@ -120,6 +120,7 @@ impl<T: Read> Parser<T> {
 
     fn single_instr(&mut self) -> Result<(), ParseError> {
         let a = self.peek()?;
+        let (line, ch) = (self.line, self.character);
         if let LexToken::LexMnemonic(mnemonic) = a {
             self.lexer.next();
 
@@ -128,7 +129,7 @@ impl<T: Read> Parser<T> {
 
             self.operand_list(&mut operands)?;
 
-            self.instructions.push(Instruction(mnemonic, operands));
+            self.instructions.push(Instruction(mnemonic, operands, line, ch));
             return Ok(());
         }
 
