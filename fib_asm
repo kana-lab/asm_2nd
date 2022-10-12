@@ -1,0 +1,15 @@
+# assembly for fib core
+
+    addi r0, zero, 1
+    addi r1, zero, 1
+    addi r2, zero, 0
+    addi r10, zero, 0
+    addi r11, zero, 20
+LOOP:
+    add r2, zero, r1
+    add r1, zero, r0
+    add r0, r1, r2
+    addi r10, r10, 1
+    blt r10, r11, LOOP
+HALT:
+    j HALT

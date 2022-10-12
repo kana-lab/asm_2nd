@@ -1,0 +1,40 @@
+mnemonic:
+	add
+	...
+	sw
+
+register:
+	zero
+	sp
+	fp
+	r0
+	...
+
+label:
+	identifier(大文字推奨) ":"
+
+operand:
+	register
+	label
+	digit
+
+operand_list:
+	operand
+	operand ","
+	operand "," operand_list
+
+single_instr:
+	mnemonic operand_list
+	label "\n"* mnemonic operand_list
+
+asm_program_line:
+	EOF
+	"\n"
+	single_instr EOF
+	single_instr "\n"
+	single_instr ";" asm_program_line
+
+asm_program:
+	asm_program_line
+	asm_program_line asm_program
+
