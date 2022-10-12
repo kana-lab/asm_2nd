@@ -11,7 +11,7 @@ register:
 	...
 
 label:
-	identifier(大文字推奨) ":"
+	identifier(大文字推奨)
 
 operand:
 	register
@@ -19,13 +19,16 @@ operand:
 	digit
 
 operand_list:
-	operand
-	operand ","
-	operand "," operand_list
+	ε
+	","  // これは今の所サポートしていない
+	"," operand operand_list
 
 single_instr:
-	mnemonic operand_list
-	label "\n"* mnemonic operand_list
+	mnemonic operand operand_list
+
+labeled_single_instr:
+    single_instr
+	label ":" "\n"* single_instr
 
 asm_program_line:
 	EOF

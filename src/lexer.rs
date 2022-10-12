@@ -1,7 +1,7 @@
 use std::io::{BufReader, Bytes, Read};
 use std::iter::Peekable;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub enum LexToken {
     LexMnemonic(Mnemonic),
     LexRegister(Register),
@@ -14,7 +14,7 @@ pub enum LexToken {
     LexSemicolon,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum Mnemonic {
     Add,
     Sub,
@@ -38,7 +38,7 @@ pub enum Mnemonic {
     Sw,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum Register {
     Zero,
     Sp,
@@ -48,8 +48,8 @@ pub enum Register {
 
 pub struct Lexer<T: Read> {
     br: Peekable<Bytes<BufReader<T>>>,
-    line: usize,
-    character: usize,
+    pub line: usize,
+    pub character: usize,
 }
 
 #[derive(Debug)]
@@ -248,16 +248,17 @@ impl<T: Read> Lexer<T> {
 }
 
 impl<T: Read> Iterator for Lexer<T> {
-    type Item = LexToken;
+    type Item = (LexToken, usize, usize);
 
     fn next(&mut self) -> Option<Self::Item> {
         self.skip_space();
+        let (line, ch) = (self.line, self.character);
 
         let token = self.get_control();
-        if token.is_ok() { return Some(token.unwrap()); }
+        if token.is_ok() { return Some((token.unwrap(), line, ch)); }
 
         let token = self.get_digit();
-        if token.is_ok() { return Some(LexToken::LexDigit(token.unwrap())); }
+        if token.is_ok() { return Some((LexToken::LexDigit(token.unwrap()), line, ch)); }
 
         if let Err(SyntaxError::MalformedTokenError) = token {
             println!("at line {}, character {}: Syntax Error", self.line, self.character);
@@ -273,9 +274,9 @@ impl<T: Read> Iterator for Lexer<T> {
         }
 
         let token = token.unwrap();
-        if token.eq_ignore_ascii_case(b"zero") { return Some(LexToken::LexRegister(Register::Zero)); }
-        if token.eq_ignore_ascii_case(b"sp") { return Some(LexToken::LexRegister(Register::Sp)); }
-        if token.eq_ignore_ascii_case(b"fp") { return Some(LexToken::LexRegister(Register::Fp)); }
+        if token.eq_ignore_ascii_case(b"zero") { return Some((LexToken::LexRegister(Register::Zero), line, ch)); }
+        if token.eq_ignore_ascii_case(b"sp") { return Some((LexToken::LexRegister(Register::Sp), line, ch)); }
+        if token.eq_ignore_ascii_case(b"fp") { return Some((LexToken::LexRegister(Register::Fp), line, ch)); }
         if token[0] == b'r' {
             let mut n = 0;
             let mut is_label = false;
@@ -287,30 +288,30 @@ impl<T: Read> Iterator for Lexer<T> {
                 n *= 10;
                 n += token[i] - b'0';
             }
-            if !is_label { return Some(LexToken::LexRegister(Register::R(n))); }
+            if !is_label { return Some((LexToken::LexRegister(Register::R(n)), line, ch)); }
         }
 
-        if token.eq_ignore_ascii_case(b"add") { return Some(LexToken::LexMnemonic(Mnemonic::Add)); }
-        if token.eq_ignore_ascii_case(b"sub") { return Some(LexToken::LexMnemonic(Mnemonic::Sub)); }
-        if token.eq_ignore_ascii_case(b"sll") { return Some(LexToken::LexMnemonic(Mnemonic::Sll)); }
-        if token.eq_ignore_ascii_case(b"srl") { return Some(LexToken::LexMnemonic(Mnemonic::Srl)); }
-        if token.eq_ignore_ascii_case(b"sra") { return Some(LexToken::LexMnemonic(Mnemonic::Sra)); }
-        if token.eq_ignore_ascii_case(b"addi") { return Some(LexToken::LexMnemonic(Mnemonic::Addi)); }
-        if token.eq_ignore_ascii_case(b"slli") { return Some(LexToken::LexMnemonic(Mnemonic::Slli)); }
-        if token.eq_ignore_ascii_case(b"srli") { return Some(LexToken::LexMnemonic(Mnemonic::Srli)); }
-        if token.eq_ignore_ascii_case(b"srai") { return Some(LexToken::LexMnemonic(Mnemonic::Srai)); }
-        if token.eq_ignore_ascii_case(b"fadd") { return Some(LexToken::LexMnemonic(Mnemonic::Fadd)); }
-        if token.eq_ignore_ascii_case(b"fsub") { return Some(LexToken::LexMnemonic(Mnemonic::Fsub)); }
-        if token.eq_ignore_ascii_case(b"fmul") { return Some(LexToken::LexMnemonic(Mnemonic::Fmul)); }
-        if token.eq_ignore_ascii_case(b"fdiv") { return Some(LexToken::LexMnemonic(Mnemonic::Fdiv)); }
-        if token.eq_ignore_ascii_case(b"beq") { return Some(LexToken::LexMnemonic(Mnemonic::Beq)); }
-        if token.eq_ignore_ascii_case(b"blt") { return Some(LexToken::LexMnemonic(Mnemonic::Blt)); }
-        if token.eq_ignore_ascii_case(b"ble") { return Some(LexToken::LexMnemonic(Mnemonic::Ble)); }
-        if token.eq_ignore_ascii_case(b"j") { return Some(LexToken::LexMnemonic(Mnemonic::J)); }
-        if token.eq_ignore_ascii_case(b"jr") { return Some(LexToken::LexMnemonic(Mnemonic::Jr)); }
-        if token.eq_ignore_ascii_case(b"lw") { return Some(LexToken::LexMnemonic(Mnemonic::Lw)); }
-        if token.eq_ignore_ascii_case(b"sw") { return Some(LexToken::LexMnemonic(Mnemonic::Sw)); }
+        if token.eq_ignore_ascii_case(b"add") { return Some((LexToken::LexMnemonic(Mnemonic::Add), line, ch)); }
+        if token.eq_ignore_ascii_case(b"sub") { return Some((LexToken::LexMnemonic(Mnemonic::Sub), line, ch)); }
+        if token.eq_ignore_ascii_case(b"sll") { return Some((LexToken::LexMnemonic(Mnemonic::Sll), line, ch)); }
+        if token.eq_ignore_ascii_case(b"srl") { return Some((LexToken::LexMnemonic(Mnemonic::Srl), line, ch)); }
+        if token.eq_ignore_ascii_case(b"sra") { return Some((LexToken::LexMnemonic(Mnemonic::Sra), line, ch)); }
+        if token.eq_ignore_ascii_case(b"addi") { return Some((LexToken::LexMnemonic(Mnemonic::Addi), line, ch)); }
+        if token.eq_ignore_ascii_case(b"slli") { return Some((LexToken::LexMnemonic(Mnemonic::Slli), line, ch)); }
+        if token.eq_ignore_ascii_case(b"srli") { return Some((LexToken::LexMnemonic(Mnemonic::Srli), line, ch)); }
+        if token.eq_ignore_ascii_case(b"srai") { return Some((LexToken::LexMnemonic(Mnemonic::Srai), line, ch)); }
+        if token.eq_ignore_ascii_case(b"fadd") { return Some((LexToken::LexMnemonic(Mnemonic::Fadd), line, ch)); }
+        if token.eq_ignore_ascii_case(b"fsub") { return Some((LexToken::LexMnemonic(Mnemonic::Fsub), line, ch)); }
+        if token.eq_ignore_ascii_case(b"fmul") { return Some((LexToken::LexMnemonic(Mnemonic::Fmul), line, ch)); }
+        if token.eq_ignore_ascii_case(b"fdiv") { return Some((LexToken::LexMnemonic(Mnemonic::Fdiv), line, ch)); }
+        if token.eq_ignore_ascii_case(b"beq") { return Some((LexToken::LexMnemonic(Mnemonic::Beq), line, ch)); }
+        if token.eq_ignore_ascii_case(b"blt") { return Some((LexToken::LexMnemonic(Mnemonic::Blt), line, ch)); }
+        if token.eq_ignore_ascii_case(b"ble") { return Some((LexToken::LexMnemonic(Mnemonic::Ble), line, ch)); }
+        if token.eq_ignore_ascii_case(b"j") { return Some((LexToken::LexMnemonic(Mnemonic::J), line, ch)); }
+        if token.eq_ignore_ascii_case(b"jr") { return Some((LexToken::LexMnemonic(Mnemonic::Jr), line, ch)); }
+        if token.eq_ignore_ascii_case(b"lw") { return Some((LexToken::LexMnemonic(Mnemonic::Lw), line, ch)); }
+        if token.eq_ignore_ascii_case(b"sw") { return Some((LexToken::LexMnemonic(Mnemonic::Sw), line, ch)); }
 
-        Some(LexToken::LexLabel(token))
+        Some((LexToken::LexLabel(token), line, ch))
     }
 }

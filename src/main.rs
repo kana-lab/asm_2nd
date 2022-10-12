@@ -1,8 +1,8 @@
 use std::env::args;
 use std::fs::File;
 use std::io::BufReader;
-use log::{debug, error};
-use asm_1st::lexer::{Lexer, LexToken};
+use asm_1st::lexer::Lexer;
+use asm_1st::parser::Parser;
 
 fn main() {
     let args: Vec<String> = args().collect();
@@ -21,8 +21,12 @@ fn main() {
     };
     let br = BufReader::new(f);
     let lex = Lexer::new(br);
-    for token in lex.into_iter() {
-        println!("{:?}", token);
-        if let LexToken::LexEof = token { break; }
-    }
+    // for token in lex.into_iter() {
+    //     println!("{:?}", token);
+    //     if let LexToken::LexEof = token { break; }
+    // }
+    let p = Parser::new(lex);
+    let (inst, map) = p.parse().unwrap();
+    println!("{:?}", inst);
+    println!("{:?}", map);
 }
