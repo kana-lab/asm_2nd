@@ -1,7 +1,7 @@
 use std::env::args;
 use std::fs::File;
 use std::io::BufReader;
-use asm_1st::decoder;
+use asm_1st::encoder;
 use asm_1st::lexer::Lexer;
 use asm_1st::parser::Parser;
 
@@ -20,17 +20,12 @@ fn main() {
             return;
         }
     };
+
     let br = BufReader::new(f);
     let lex = Lexer::new(br);
-    // for token in lex.into_iter() {
-    //     println!("{:?}", token);
-    //     if let LexToken::LexEof = token { break; }
-    // }
-    let p = Parser::new(lex);
-    let (inst, map) = p.parse().unwrap();
-    // println!("{:?}", inst);
-    // println!("{:?}", map);
-    let binary = decoder::decode(inst, map).unwrap();
+    let par = Parser::new(lex);
+    let (inst, map) = par.parse().unwrap();
+    let binary = encoder::encode(inst, map).unwrap();
     for b in binary {
         println!("{:<08x}", b);
     }

@@ -4,7 +4,7 @@ use crate::lexer::Mnemonic::*;
 use crate::parser::{Instruction, Operand};
 
 #[derive(Debug)]
-pub enum DecodeError {
+pub enum EncodeError {
     ImmTooLargeError,
     InvalidOperandNumError,
     SubstitutionToZeroError,
@@ -62,9 +62,9 @@ fn get_op_funct(m: Mnemonic) -> u32 {
     }
 }
 
-pub fn decode(
+pub fn encode(
     instructions: Vec<Instruction>, address_map: HashMap<String, i64>,
-) -> Result<Vec<u32>, DecodeError> {
+) -> Result<Vec<u32>, EncodeError> {
     let mut binary = vec![];
 
     let it = instructions.into_iter().enumerate();
@@ -76,14 +76,14 @@ pub fn decode(
             if operands.len() != 3 {
                 println!("at line {line}, character {ch}: Syntax Error");
                 println!("the number of operands must be 3.");
-                return Err(DecodeError::InvalidOperandNumError);
+                return Err(EncodeError::InvalidOperandNumError);
             }
 
             if let Operand::OpRegister(r) = operands[0] {
                 if let Register::Zero = r {
                     println!("at line {line}, character {ch}: Warning");
                     println!("substitution to zero register is meaningless.");
-                    return Err(DecodeError::SubstitutionToZeroError);
+                    return Err(EncodeError::SubstitutionToZeroError);
                 }
 
                 let reg_num = get_register_num(r);
@@ -91,7 +91,7 @@ pub fn decode(
             } else {
                 println!("at line {line}, character {ch}: Syntax Error");
                 println!("the first operand must be a register.");
-                return Err(DecodeError::InvalidOperandKindError);
+                return Err(EncodeError::InvalidOperandKindError);
             }
 
             if let Operand::OpRegister(r) = operands[1] {
@@ -100,7 +100,7 @@ pub fn decode(
             } else {
                 println!("at line {line}, character {ch}: Syntax Error");
                 println!("the second operand must be a register.");
-                return Err(DecodeError::InvalidOperandKindError);
+                return Err(EncodeError::InvalidOperandKindError);
             }
 
             if is_arithmetic_imm(mnemonic) {
@@ -108,7 +108,7 @@ pub fn decode(
                     if !(-256 < n && n < 256) {
                         println!("at line {line}, character {ch}: Warning");
                         println!("the number exceeds the size of 8bit integer.");
-                        return Err(DecodeError::ImmTooLargeError);
+                        return Err(EncodeError::ImmTooLargeError);
                     }
 
                     let n = n as u8;
@@ -116,7 +116,7 @@ pub fn decode(
                 } else {
                     println!("at line {line}, character {ch}: Syntax Error");
                     println!("the third operand must be an immediate value.");
-                    return Err(DecodeError::InvalidOperandKindError);
+                    return Err(EncodeError::InvalidOperandKindError);
                 }
             } else {
                 if let Operand::OpRegister(r) = operands[2] {
@@ -125,14 +125,14 @@ pub fn decode(
                 } else {
                     println!("at line {line}, character {ch}: Syntax Error");
                     println!("the third operand must be a register.");
-                    return Err(DecodeError::InvalidOperandKindError);
+                    return Err(EncodeError::InvalidOperandKindError);
                 }
             }
         } else if mnemonic == Beq || mnemonic == Blt || mnemonic == Ble {
             if operands.len() != 3 {
                 println!("at line {line}, character {ch}: Syntax Error");
                 println!("the number of operands must be 3.");
-                return Err(DecodeError::InvalidOperandNumError);
+                return Err(EncodeError::InvalidOperandNumError);
             }
 
             if let Operand::OpRegister(r) = operands[0] {
@@ -141,7 +141,7 @@ pub fn decode(
             } else {
                 println!("at line {line}, character {ch}: Syntax Error");
                 println!("the first operand must be a register.");
-                return Err(DecodeError::InvalidOperandKindError);
+                return Err(EncodeError::InvalidOperandKindError);
             }
 
             if let Operand::OpRegister(r) = operands[1] {
@@ -150,7 +150,7 @@ pub fn decode(
             } else {
                 println!("at line {line}, character {ch}: Syntax Error");
                 println!("the second operand must be a register.");
-                return Err(DecodeError::InvalidOperandKindError);
+                return Err(EncodeError::InvalidOperandKindError);
             }
 
             if let Operand::OpLabel(label) = &operands[2] {
@@ -158,7 +158,7 @@ pub fn decode(
                 if dest_addr.is_none() {
                     println!("at line {line}, character {ch}: Syntax Error");
                     println!("label \"{}\" not found.", label.clone());
-                    return Err(DecodeError::LabelNotFoundError);
+                    return Err(EncodeError::LabelNotFoundError);
                 }
                 let dest_addr = *dest_addr.unwrap();
 
@@ -166,20 +166,20 @@ pub fn decode(
                 if !(-512 <= relative_addr && relative_addr < 512) {
                     println!("at line {line}, character {ch}: Warning");
                     println!("label \"{}\" is too far to jump.", label.clone());
-                    return Err(DecodeError::LabelTooFarError);
+                    return Err(EncodeError::LabelTooFarError);
                 }
 
                 b |= ((relative_addr as u32) << 16) & 0x03ffffff;
             } else {
                 println!("at line {line}, character {ch}: Syntax Error");
                 println!("the third operand must be a label.");
-                return Err(DecodeError::InvalidOperandKindError);
+                return Err(EncodeError::InvalidOperandKindError);
             }
         } else if mnemonic == Mnemonic::J {
             if operands.len() != 1 {
                 println!("at line {line}, character {ch}: Syntax Error");
                 println!("the number of operands must be 1.");
-                return Err(DecodeError::InvalidOperandNumError);
+                return Err(EncodeError::InvalidOperandNumError);
             }
 
             if let Operand::OpLabel(label) = &operands[0] {
@@ -187,7 +187,7 @@ pub fn decode(
                 if dest_addr.is_none() {
                     println!("at line {line}, character {ch}: Syntax Error");
                     println!("label \"{}\" not found.", label.clone());
-                    return Err(DecodeError::LabelNotFoundError);
+                    return Err(EncodeError::LabelNotFoundError);
                 }
                 let dest_addr = *dest_addr.unwrap();
 
@@ -196,20 +196,20 @@ pub fn decode(
                 if !(-lim <= relative_addr && relative_addr < lim) {
                     println!("at line {line}, character {ch}: Warning");
                     println!("label \"{}\" is too far to jump.", label.clone());
-                    return Err(DecodeError::LabelTooFarError);
+                    return Err(EncodeError::LabelTooFarError);
                 }
 
                 b |= (relative_addr as u32) & 0x03ffffff;
             } else {
                 println!("at line {line}, character {ch}: Syntax Error");
                 println!("the third operand must be a label.");
-                return Err(DecodeError::InvalidOperandKindError);
+                return Err(EncodeError::InvalidOperandKindError);
             }
         } else if mnemonic == Mnemonic::Jr {
             if operands.len() != 1 {
                 println!("at line {line}, character {ch}: Syntax Error");
                 println!("the number of operands must be 1.");
-                return Err(DecodeError::InvalidOperandNumError);
+                return Err(EncodeError::InvalidOperandNumError);
             }
 
             if let Operand::OpRegister(r) = operands[0] {
@@ -218,20 +218,20 @@ pub fn decode(
             } else {
                 println!("at line {line}, character {ch}: Syntax Error");
                 println!("the first operand must be a register.");
-                return Err(DecodeError::InvalidOperandKindError);
+                return Err(EncodeError::InvalidOperandKindError);
             }
         } else if mnemonic == Mnemonic::Lw {
             if operands.len() != 2 {
                 println!("at line {line}, character {ch}: Syntax Error");
                 println!("the number of operands must be 1.");
-                return Err(DecodeError::InvalidOperandNumError);
+                return Err(EncodeError::InvalidOperandNumError);
             }
 
             if let Operand::OpRegister(r) = operands[0] {
                 if let Register::Zero = r {
                     println!("at line {line}, character {ch}: Warning");
                     println!("substitution to zero register is meaningless.");
-                    return Err(DecodeError::SubstitutionToZeroError);
+                    return Err(EncodeError::SubstitutionToZeroError);
                 }
 
                 let reg_num = get_register_num(r);
@@ -239,7 +239,7 @@ pub fn decode(
             } else {
                 println!("at line {line}, character {ch}: Syntax Error");
                 println!("the first operand must be a register.");
-                return Err(DecodeError::InvalidOperandKindError);
+                return Err(EncodeError::InvalidOperandKindError);
             }
 
             if let Operand::OpRegister(r) = operands[1] {
@@ -248,13 +248,13 @@ pub fn decode(
             } else {
                 println!("at line {line}, character {ch}: Syntax Error");
                 println!("the second operand must be a register.");
-                return Err(DecodeError::InvalidOperandKindError);
+                return Err(EncodeError::InvalidOperandKindError);
             }
         } else if mnemonic == Mnemonic::Sw {
             if operands.len() != 2 {
                 println!("at line {line}, character {ch}: Syntax Error");
                 println!("the number of operands must be 1.");
-                return Err(DecodeError::InvalidOperandNumError);
+                return Err(EncodeError::InvalidOperandNumError);
             }
 
             if let Operand::OpRegister(r) = operands[0] {
@@ -263,7 +263,7 @@ pub fn decode(
             } else {
                 println!("at line {line}, character {ch}: Syntax Error");
                 println!("the first operand must be a register.");
-                return Err(DecodeError::InvalidOperandKindError);
+                return Err(EncodeError::InvalidOperandKindError);
             }
 
             if let Operand::OpRegister(r) = operands[1] {
@@ -272,7 +272,7 @@ pub fn decode(
             } else {
                 println!("at line {line}, character {ch}: Syntax Error");
                 println!("the second operand must be a register.");
-                return Err(DecodeError::InvalidOperandKindError);
+                return Err(EncodeError::InvalidOperandKindError);
             }
         }
 

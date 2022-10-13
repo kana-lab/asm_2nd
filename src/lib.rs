@@ -1,3 +1,3 @@
 pub mod lexer;
 pub mod parser;
-pub mod decoder;
+pub mod encoder;
