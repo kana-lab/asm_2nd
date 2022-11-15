@@ -117,7 +117,7 @@ pub fn encode(
                     let dest_addr = address_map.get(s);
                     if dest_addr.is_none() {
                         println!("at line {line}, character {ch}: Syntax Error");
-                        println!("label \"{}\" not found.", label.clone());
+                        println!("label \"{}\" not found.", s.clone());
                         return Err(EncodeError::LabelNotFoundError);
                     }
                     let dest_addr = *dest_addr.unwrap();
