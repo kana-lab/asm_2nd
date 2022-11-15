@@ -179,7 +179,7 @@ impl<T: Read> Lexer<T> {
         let a = self.br.peek();
         if a.is_none() { return Err(SyntaxError::UnknownCharacterError); }
         let a = *a.unwrap().as_ref().unwrap();
-        if !a.is_ascii_alphabetic() { return Err(SyntaxError::UnknownCharacterError); }
+        if !(a.is_ascii_alphabetic() || a == b'_') { return Err(SyntaxError::UnknownCharacterError); }
         self.br.next();
 
         let mut buf = vec![a];
