@@ -27,18 +27,22 @@ fn main() {
     let (inst, map) = par.parse().unwrap();
     let binary = encoder::encode(inst, map).unwrap();
 
-    let mut g = match File::create("asm.out") {
-        Ok(f) => f,
-        Err(e) => {
-            println!("could not create file: {}", e);
-            return;
-        }
-    };
-    let mut bin = vec![];
+    // let mut g = match File::create("asm.out") {
+    //     Ok(f) => f,
+    //     Err(e) => {
+    //         println!("could not create file: {}", e);
+    //         return;
+    //     }
+    // };
+    // let mut bin = vec![];
+    // for b in binary {
+    //     for i in 0..4 {
+    //         bin.push(((b >> (i * 8)) & 0xff) as u8);
+    //     }
+    // }
+    // g.write_all(&mut bin);
+
     for b in binary {
-        for i in 0..4 {
-            bin.push(((b >> (i * 8)) & 0xff) as u8);
-        }
+        println!("{:<08x}", b);
     }
-    g.write_all(&mut bin);
 }
