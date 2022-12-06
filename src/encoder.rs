@@ -15,7 +15,7 @@ pub enum EncodeError {
 
 fn is_arithmetic(m: Mnemonic) -> bool {
     match m {
-        Add | Sub | Sll | Srl | Sra | Addi | Slli | Srli | Srai |
+        Add | Sub | Sll | Srl | Sra | Addi | Subi | Slli | Srli | Srai |
         Fadd | Fsub | Fmul | Fdiv => true,
         _ => false
     }
@@ -23,7 +23,7 @@ fn is_arithmetic(m: Mnemonic) -> bool {
 
 fn is_arithmetic_imm(m: Mnemonic) -> bool {
     match m {
-        Addi | Slli | Srli | Srai => true,
+        Addi | Subi | Slli | Srli | Srai => true,
         _ => false
     }
 }
@@ -45,6 +45,7 @@ fn get_op_funct(m: Mnemonic) -> u32 {
         Srl => 0x08000000,
         Sra => 0x10000000,
         Addi => 0x21000000,
+        Subi => 0x22000000,
         Slli => 0x24000000,
         Srli => 0x28000000,
         Srai => 0x30000000,
@@ -59,6 +60,8 @@ fn get_op_funct(m: Mnemonic) -> u32 {
         Jr => 0xa4000000,
         Lw => 0xe0000000,
         Sw => 0xc0000000,
+        Put => 0,
+        Mov => unreachable!()
     }
 }
 
@@ -285,6 +288,74 @@ pub fn encode(
                 println!("the second operand must be a register.");
                 return Err(EncodeError::InvalidOperandKindError);
             }
+        } else if mnemonic == Mnemonic::Put {
+            if operands.len() != 1 {
+                println!("at line {line}, character {ch}: Syntax Error");
+                println!("the number of operands must be 1.");
+                return Err(EncodeError::InvalidOperandNumError);
+            }
+
+            if let Operand::OpDigit(n) = operands[0] {
+                b = n as u32;
+            } else if let Operand::OpLabel(label) = &operands[0] {
+                let dest_addr = address_map.get(label);
+                if dest_addr.is_none() {
+                    println!("at line {line}, character {ch}: Syntax Error");
+                    println!("label \"{}\" not found.", label.clone());
+                    return Err(EncodeError::LabelNotFoundError);
+                }
+                let dest_addr = *dest_addr.unwrap();
+                b = dest_addr as u32;  // FIXME: no check if dest_addr exceeds 32bit
+            } else {
+                println!("at line {line}, character {ch}: Syntax Error");
+                println!("the first operand must be an immediate value or a label.");
+                return Err(EncodeError::InvalidOperandKindError);
+            }
+        } else if mnemonic == Mnemonic::Mov {
+            if operands.len() != 2 {
+                println!("at line {line}, character {ch}: Syntax Error");
+                println!("the number of operands must be 2.");
+                return Err(EncodeError::InvalidOperandNumError);
+            }
+
+            let reg_num = if let Operand::OpRegister(r) = operands[0] {
+                get_register_num(r)
+            } else {
+                println!("at line {line}, character {ch}: Syntax Error");
+                println!("the first operand must be a register.");
+                return Err(EncodeError::InvalidOperandKindError);
+            };
+
+            let val = if let Operand::OpDigit(n) = operands[1] {
+                n as u32
+            } else if let Operand::OpLabel(label) = &operands[1] {
+                let dest_addr = address_map.get(label);
+                if dest_addr.is_none() {
+                    println!("at line {line}, character {ch}: Syntax Error");
+                    println!("label \"{}\" not found.", label.clone());
+                    return Err(EncodeError::LabelNotFoundError);
+                }
+                let dest_addr = *dest_addr.unwrap();
+                dest_addr as u32  // FIXME: no check if dest_addr exceeds 32bit
+            } else {
+                println!("at line {line}, character {ch}: Syntax Error");
+                println!("the second operand must be an immediate value or a label.");
+                return Err(EncodeError::InvalidOperandKindError);
+            };
+
+            let mut i = 1;
+            while val >> (8 * i) > 0 { i += 1; }
+            i -= 1;
+            binary.push(0x2100ff00 | ((reg_num as u32) << 16) | (val >> (8 * i)));
+
+            let b_base = 0x21000000 | ((reg_num as u32) << 16) | ((reg_num as u32) << 8);
+            let shift8 = 0x24000000 | ((reg_num as u32) << 16) | ((reg_num as u32) << 8) | 8;
+            while i > 0 {
+                i -= 1;
+                binary.push(shift8);
+                binary.push(b_base | ((val >> (8 * i)) & 0xff));
+            }
+            continue;
         }
 
         let op_funct = get_op_funct(mnemonic);

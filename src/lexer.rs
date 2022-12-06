@@ -22,6 +22,7 @@ pub enum Mnemonic {
     Srl,
     Sra,
     Addi,
+    Subi,
     Slli,
     Srli,
     Srai,
@@ -36,6 +37,8 @@ pub enum Mnemonic {
     Jr,
     Lw,
     Sw,
+    Mov,
+    Put,
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
@@ -297,6 +300,7 @@ impl<T: Read> Iterator for Lexer<T> {
         if token.eq_ignore_ascii_case(b"srl") { return Some((LexToken::LexMnemonic(Mnemonic::Srl), line, ch)); }
         if token.eq_ignore_ascii_case(b"sra") { return Some((LexToken::LexMnemonic(Mnemonic::Sra), line, ch)); }
         if token.eq_ignore_ascii_case(b"addi") { return Some((LexToken::LexMnemonic(Mnemonic::Addi), line, ch)); }
+        if token.eq_ignore_ascii_case(b"subi") { return Some((LexToken::LexMnemonic(Mnemonic::Subi), line, ch)); }
         if token.eq_ignore_ascii_case(b"slli") { return Some((LexToken::LexMnemonic(Mnemonic::Slli), line, ch)); }
         if token.eq_ignore_ascii_case(b"srli") { return Some((LexToken::LexMnemonic(Mnemonic::Srli), line, ch)); }
         if token.eq_ignore_ascii_case(b"srai") { return Some((LexToken::LexMnemonic(Mnemonic::Srai), line, ch)); }
@@ -311,6 +315,8 @@ impl<T: Read> Iterator for Lexer<T> {
         if token.eq_ignore_ascii_case(b"jr") { return Some((LexToken::LexMnemonic(Mnemonic::Jr), line, ch)); }
         if token.eq_ignore_ascii_case(b"lw") { return Some((LexToken::LexMnemonic(Mnemonic::Lw), line, ch)); }
         if token.eq_ignore_ascii_case(b"sw") { return Some((LexToken::LexMnemonic(Mnemonic::Sw), line, ch)); }
+        if token.eq_ignore_ascii_case(b"mov") { return Some((LexToken::LexMnemonic(Mnemonic::Mov), line, ch)); }
+        if token.eq_ignore_ascii_case(b"put") { return Some((LexToken::LexMnemonic(Mnemonic::Put), line, ch)); }
 
         Some((LexToken::LexLabel(token), line, ch))
     }
