@@ -1,6 +1,6 @@
 use std::env::args;
 use std::fs::File;
-use std::io::{BufReader, Write};
+use std::io::{BufReader};
 use asm_1st::encoder;
 use asm_1st::lexer::Lexer;
 use asm_1st::parser::Parser;
@@ -24,8 +24,14 @@ fn main() {
     let br = BufReader::new(f);
     let lex = Lexer::new(br);
     let par = Parser::new(lex);
-    let (inst, map) = par.parse().unwrap();
-    let binary = encoder::encode(inst, map).unwrap();
+    let (inst, map) = match par.parse() {
+        Ok(ok) => ok,
+        Err(_e) => { return; }
+    };
+    let binary = match encoder::encode(inst, map) {
+        Ok(ok) => ok,
+        Err(_e) => { return; }
+    };
 
     // let mut g = match File::create("asm.out") {
     //     Ok(f) => f,
