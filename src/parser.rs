@@ -8,7 +8,7 @@ use crate::lexer::{Lexer, LexToken, Mnemonic, Register};
 pub enum Operand {
     OpRegister(Register),
     OpLabel(String),
-    OpDigit(i32),
+    OpDigit(i64),
 }
 
 #[derive(Debug)]

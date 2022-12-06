@@ -5,7 +5,7 @@ use std::iter::Peekable;
 pub enum LexToken {
     LexMnemonic(Mnemonic),
     LexRegister(Register),
-    LexDigit(i32),
+    LexDigit(i64),
     LexLabel(Vec<u8>),
     LexColon,
     LexComma,
@@ -78,7 +78,7 @@ impl<T: Read> Lexer<T> {
         ch == b' ' || ch == b'\t'
     }
 
-    fn get_digit(&mut self) -> Result<i32, SyntaxError> {
+    fn get_digit(&mut self) -> Result<i64, SyntaxError> {
         let a = self.br.peek();
         if a.is_none() { return Err(SyntaxError::UnknownCharacterError); }
         let a = *a.unwrap().as_ref().unwrap();
@@ -109,7 +109,7 @@ impl<T: Read> Lexer<T> {
         self.br.next();
         self.character += 1;
 
-        let mut res = (a - b'0') as i32;
+        let mut res = (a - b'0') as i64;
 
         let a = self.br.peek();
         if a.is_none() { return Ok(if is_minus { -res } else { res }); }
