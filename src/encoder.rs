@@ -16,7 +16,14 @@ pub enum EncodeError {
 fn is_arithmetic(m: Mnemonic) -> bool {
     match m {
         Add | Sub | Sll | Srl | Sra | Addi | Subi | Slli | Srli | Srai |
-        Fadd | Fsub | Fmul | Fdiv => true,
+        Fadd | Fsub | Fmul | Fdiv | Fless => true,
+        _ => false
+    }
+}
+
+fn is_arithmetic_ext(m: Mnemonic) -> bool {
+    match m {
+        Fispos | Fisneg | Fneg | Ftoi | Itof => true,
         _ => false
     }
 }
@@ -41,9 +48,12 @@ fn get_op_funct(m: Mnemonic) -> u32 {
     match m {
         Add => 0x01000000,
         Sub => 0x02000000,
-        Sll => 0x04000000,
-        Srl => 0x08000000,
-        Sra => 0x10000000,
+        Sll => 0x09000000,
+        Srl => 0x0a000000,
+        Sra => 0x0c000000,
+        Fispos => 0x11000000,
+        Fisneg => 0x12000000,
+        Fneg => 0x14000000,
         Addi => 0x21000000,
         Subi => 0x22000000,
         Slli => 0x24000000,
@@ -53,6 +63,9 @@ fn get_op_funct(m: Mnemonic) -> u32 {
         Fsub => 0x42000000,
         Fmul => 0x44000000,
         Fdiv => 0x48000000,
+        Fless => 0x51000000,
+        Ftoi => 0x52000000,
+        Itof => 0x54000000,
         Beq => 0x84000000,
         Blt => 0x88000000,
         Ble => 0x90000000,
@@ -141,6 +154,36 @@ pub fn encode(
                     println!("the third operand must be a register.");
                     return Err(EncodeError::InvalidOperandKindError);
                 }
+            }
+        } else if is_arithmetic_ext(mnemonic) {
+            if operands.len() != 2 {
+                println!("at line {line}, character {ch}: Syntax Error");
+                println!("the number of operands must be 2.");
+                return Err(EncodeError::InvalidOperandNumError);
+            }
+
+            if let Operand::OpRegister(r) = operands[0] {
+                if let Register::Zero = r {
+                    println!("at line {line}, character {ch}: Warning");
+                    println!("substitution to zero register is meaningless.");
+                    return Err(EncodeError::SubstitutionToZeroError);
+                }
+
+                let reg_num = get_register_num(r);
+                b |= (reg_num as u32) << 16;
+            } else {
+                println!("at line {line}, character {ch}: Syntax Error");
+                println!("the first operand must be a register.");
+                return Err(EncodeError::InvalidOperandKindError);
+            }
+
+            if let Operand::OpRegister(r) = operands[1] {
+                let reg_num = get_register_num(r);
+                b |= reg_num as u32;
+            } else {
+                println!("at line {line}, character {ch}: Syntax Error");
+                println!("the second operand must be a register.");
+                return Err(EncodeError::InvalidOperandKindError);
             }
         } else if mnemonic == Beq || mnemonic == Blt || mnemonic == Ble {
             if operands.len() != 3 {
@@ -319,6 +362,12 @@ pub fn encode(
             }
 
             let reg_num = if let Operand::OpRegister(r) = operands[0] {
+                if let Register::Zero = r {
+                    println!("at line {line}, character {ch}: Warning");
+                    println!("substitution to zero register is meaningless.");
+                    return Err(EncodeError::SubstitutionToZeroError);
+                }
+
                 get_register_num(r)
             } else {
                 println!("at line {line}, character {ch}: Syntax Error");

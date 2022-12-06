@@ -21,6 +21,9 @@ pub enum Mnemonic {
     Sll,
     Srl,
     Sra,
+    Fispos,
+    Fisneg,
+    Fneg,
     Addi,
     Subi,
     Slli,
@@ -30,6 +33,9 @@ pub enum Mnemonic {
     Fsub,
     Fmul,
     Fdiv,
+    Fless,
+    Ftoi,
+    Itof,
     Beq,
     Blt,
     Ble,
@@ -299,6 +305,9 @@ impl<T: Read> Iterator for Lexer<T> {
         if token.eq_ignore_ascii_case(b"sll") { return Some((LexToken::LexMnemonic(Mnemonic::Sll), line, ch)); }
         if token.eq_ignore_ascii_case(b"srl") { return Some((LexToken::LexMnemonic(Mnemonic::Srl), line, ch)); }
         if token.eq_ignore_ascii_case(b"sra") { return Some((LexToken::LexMnemonic(Mnemonic::Sra), line, ch)); }
+        if token.eq_ignore_ascii_case(b"fispos") { return Some((LexToken::LexMnemonic(Mnemonic::Fispos), line, ch)); }
+        if token.eq_ignore_ascii_case(b"fisneg") { return Some((LexToken::LexMnemonic(Mnemonic::Fisneg), line, ch)); }
+        if token.eq_ignore_ascii_case(b"fneg") { return Some((LexToken::LexMnemonic(Mnemonic::Fneg), line, ch)); }
         if token.eq_ignore_ascii_case(b"addi") { return Some((LexToken::LexMnemonic(Mnemonic::Addi), line, ch)); }
         if token.eq_ignore_ascii_case(b"subi") { return Some((LexToken::LexMnemonic(Mnemonic::Subi), line, ch)); }
         if token.eq_ignore_ascii_case(b"slli") { return Some((LexToken::LexMnemonic(Mnemonic::Slli), line, ch)); }
@@ -308,6 +317,9 @@ impl<T: Read> Iterator for Lexer<T> {
         if token.eq_ignore_ascii_case(b"fsub") { return Some((LexToken::LexMnemonic(Mnemonic::Fsub), line, ch)); }
         if token.eq_ignore_ascii_case(b"fmul") { return Some((LexToken::LexMnemonic(Mnemonic::Fmul), line, ch)); }
         if token.eq_ignore_ascii_case(b"fdiv") { return Some((LexToken::LexMnemonic(Mnemonic::Fdiv), line, ch)); }
+        if token.eq_ignore_ascii_case(b"fless") { return Some((LexToken::LexMnemonic(Mnemonic::Fless), line, ch)); }
+        if token.eq_ignore_ascii_case(b"ftoi") { return Some((LexToken::LexMnemonic(Mnemonic::Ftoi), line, ch)); }
+        if token.eq_ignore_ascii_case(b"itof") { return Some((LexToken::LexMnemonic(Mnemonic::Itof), line, ch)); }
         if token.eq_ignore_ascii_case(b"beq") { return Some((LexToken::LexMnemonic(Mnemonic::Beq), line, ch)); }
         if token.eq_ignore_ascii_case(b"blt") { return Some((LexToken::LexMnemonic(Mnemonic::Blt), line, ch)); }
         if token.eq_ignore_ascii_case(b"ble") { return Some((LexToken::LexMnemonic(Mnemonic::Ble), line, ch)); }
