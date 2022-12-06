@@ -23,7 +23,7 @@ fn is_arithmetic(m: Mnemonic) -> bool {
 
 fn is_arithmetic_ext(m: Mnemonic) -> bool {
     match m {
-        Fispos | Fisneg | Fneg | Ftoi | Itof => true,
+        Fispos | Fisneg | Fneg | Ftoi | Itof | Fsqrt => true,
         _ => false
     }
 }
@@ -66,6 +66,7 @@ fn get_op_funct(m: Mnemonic) -> u32 {
         Fless => 0x51000000,
         Ftoi => 0x52000000,
         Itof => 0x54000000,
+        Fsqrt => 0x58000000,
         Beq => 0x84000000,
         Blt => 0x88000000,
         Ble => 0x90000000,

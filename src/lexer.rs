@@ -36,6 +36,7 @@ pub enum Mnemonic {
     Fless,
     Ftoi,
     Itof,
+    Fsqrt,
     Beq,
     Blt,
     Ble,
@@ -320,6 +321,7 @@ impl<T: Read> Iterator for Lexer<T> {
         if token.eq_ignore_ascii_case(b"fless") { return Some((LexToken::LexMnemonic(Mnemonic::Fless), line, ch)); }
         if token.eq_ignore_ascii_case(b"ftoi") { return Some((LexToken::LexMnemonic(Mnemonic::Ftoi), line, ch)); }
         if token.eq_ignore_ascii_case(b"itof") { return Some((LexToken::LexMnemonic(Mnemonic::Itof), line, ch)); }
+        if token.eq_ignore_ascii_case(b"fsqrt") { return Some((LexToken::LexMnemonic(Mnemonic::Fsqrt), line, ch)); }
         if token.eq_ignore_ascii_case(b"beq") { return Some((LexToken::LexMnemonic(Mnemonic::Beq), line, ch)); }
         if token.eq_ignore_ascii_case(b"blt") { return Some((LexToken::LexMnemonic(Mnemonic::Blt), line, ch)); }
         if token.eq_ignore_ascii_case(b"ble") { return Some((LexToken::LexMnemonic(Mnemonic::Ble), line, ch)); }
