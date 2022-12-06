@@ -133,7 +133,7 @@ impl<T: Read> Lexer<T> {
                     a - b'A' + 10
                 } else {
                     a - b'a' + 10
-                } as i32;
+                } as i64;
 
                 self.br.next();
                 self.character += 1;
@@ -155,7 +155,7 @@ impl<T: Read> Lexer<T> {
 
             loop {
                 res *= 2;
-                res += (a - b'0') as i32;
+                res += (a - b'0') as i64;
 
                 self.br.next();
                 self.character += 1;
@@ -171,7 +171,7 @@ impl<T: Read> Lexer<T> {
             let mut a = a;
             loop {
                 res *= 10;
-                res += (a - b'0') as i32;
+                res += (a - b'0') as i64;
 
                 self.br.next();
                 self.character += 1;
