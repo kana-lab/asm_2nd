@@ -87,6 +87,7 @@ impl<T: Read> Parser<T> {
         }
 
         if a == LexToken::LexSemicolon {
+            self.lexer.next();
             return self.asm_program_line();
         }
 

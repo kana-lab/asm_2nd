@@ -75,7 +75,7 @@ fn get_op_funct(m: Mnemonic) -> u32 {
         Lw => 0xe0000000,
         Sw => 0xc0000000,
         Put => 0,
-        Mov => unreachable!()
+        Mov | Lbeq | Lblt | Lble => unreachable!()
     }
 }
 
@@ -241,7 +241,7 @@ pub fn encode(
                 }
                 let dest_addr = dest_addr.unwrap();
 
-                let relative_addr = dest_addr - address as i64;
+                let relative_addr = dest_addr - address as i64 - address_padding;
                 if !(-512 <= relative_addr && relative_addr < 512) {
                     println!("at line {line}, character {ch}: Warning");
                     println!("label \"{}\" is too far to jump.", label.clone());
@@ -270,7 +270,7 @@ pub fn encode(
                 }
                 let dest_addr = dest_addr.unwrap();
 
-                let relative_addr = dest_addr - address as i64;
+                let relative_addr = dest_addr - address as i64 - address_padding;
                 let lim = 1 << 25;
                 if !(-lim <= relative_addr && relative_addr < lim) {
                     println!("at line {line}, character {ch}: Warning");
@@ -417,19 +417,103 @@ pub fn encode(
             let mut i = 1;
             while val >> (8 * i) > 0 { i += 1; }
             i -= 1;
-            binary.push(0x2100ff00 | ((reg_num as u32) << 16) | (val >> (8 * i)));
+            binary.push(get_op_funct(Addi) | 0xff00 | ((reg_num as u32) << 16) | (val >> (8 * i)));
 
             address_padding += 2 * i;
             padding_info.push((address + 1, address_padding));
 
-            let b_base = 0x21000000 | ((reg_num as u32) << 16) | ((reg_num as u32) << 8);
-            let shift8 = 0x24000000 | ((reg_num as u32) << 16) | ((reg_num as u32) << 8) | 8;
+            let b_base = get_op_funct(Addi) | ((reg_num as u32) << 16) | ((reg_num as u32) << 8);
+            let shift8 = get_op_funct(Slli) | ((reg_num as u32) << 16) | ((reg_num as u32) << 8) | 8;
             while i > 0 {
                 i -= 1;
                 binary.push(shift8);
                 binary.push(b_base | ((val >> (8 * i)) & 0xff));
             }
             continue;
+        } else if mnemonic == Lbeq || mnemonic == Lblt || mnemonic == Lble {
+            if operands.len() != 3 {
+                println!("at line {line}, character {ch}: Syntax Error");
+                println!("the number of operands must be 3.");
+                return Err(EncodeError::InvalidOperandNumError);
+            }
+
+            if let Operand::OpRegister(r) = operands[0] {
+                let reg_num = get_register_num(r);
+                b |= (reg_num as u32) << 8;
+            } else {
+                println!("at line {line}, character {ch}: Syntax Error");
+                println!("the first operand must be a register.");
+                return Err(EncodeError::InvalidOperandKindError);
+            }
+
+            if let Operand::OpRegister(r) = operands[1] {
+                let reg_num = get_register_num(r);
+                b |= reg_num as u32;
+            } else {
+                println!("at line {line}, character {ch}: Syntax Error");
+                println!("the second operand must be a register.");
+                return Err(EncodeError::InvalidOperandKindError);
+            }
+
+            if let Operand::OpLabel(label) = &operands[2] {
+                let dest_addr = label_to_addr(label);
+                if dest_addr.is_none() {
+                    println!("at line {line}, character {ch}: Syntax Error");
+                    println!("label \"{}\" not found.", label.clone());
+                    return Err(EncodeError::LabelNotFoundError);
+                }
+                let dest_addr = dest_addr.unwrap();
+
+                let relative_addr = dest_addr - address as i64 - address_padding;
+                if !(-512 <= relative_addr && relative_addr < 512) {
+                    if !(-0x02000000 + 2 <= relative_addr && relative_addr < 0x02000000 - 1) {
+                        println!("at line {line}, character {ch}: Warning");
+                        println!("label \"{}\" is too far to jump (over 30,000,000 lines).", label.clone());
+                        return Err(EncodeError::LabelTooFarError);
+                    }
+
+                    if mnemonic == Lbeq {
+                        // beqの場合、bne命令がないので下のようにする
+                        //     beq r1, r2, 2
+                        //     j 2
+                        //     j label
+                        //     else...
+                        // パディングは2になる
+                        address_padding += 2;
+                        binary.push(get_op_funct(Beq) | 2 << 16 | b);
+                        binary.push(get_op_funct(J) | 2);
+                        binary.push(get_op_funct(J) | (((relative_addr - 2) as u32) & 0x03ffffff));
+                    } else {
+                        // blt, bleの場合、命令の否定をとって下のようにする
+                        //     ~inst r2, r1, 2
+                        //     j label
+                        //     else...
+                        // パディングは1になる
+                        address_padding += 1;
+                        b = ((b << 8) | (b >> 8)) & 0xffff;  // swap registers
+                        b |= get_op_funct(if mnemonic == Lblt { Ble } else { Blt }) | 2 << 16;
+                        binary.push(b);
+                        binary.push(get_op_funct(J) | (((relative_addr - 1) as u32) & 0x03ffffff));
+                    }
+
+                    padding_info.push((address + 1, address_padding));
+                    continue;
+                }
+
+                b |= ((relative_addr as u32) << 16) & 0x03ffffff;
+                b |= get_op_funct(match mnemonic {
+                    Lbeq => Beq,
+                    Lblt => Blt,
+                    Lble => Ble,
+                    _ => unreachable!()
+                });
+                binary.push(b);
+                continue;
+            } else {
+                println!("at line {line}, character {ch}: Syntax Error");
+                println!("the third operand must be a label.");
+                return Err(EncodeError::InvalidOperandKindError);
+            }
         }
 
         let op_funct = get_op_funct(mnemonic);

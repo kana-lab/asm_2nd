@@ -46,6 +46,9 @@ pub enum Mnemonic {
     Sw,
     Mov,
     Put,
+    Lbeq,
+    Lblt,
+    Lble,
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
@@ -331,6 +334,9 @@ impl<T: Read> Iterator for Lexer<T> {
         if token.eq_ignore_ascii_case(b"sw") { return Some((LexToken::LexMnemonic(Mnemonic::Sw), line, ch)); }
         if token.eq_ignore_ascii_case(b"mov") { return Some((LexToken::LexMnemonic(Mnemonic::Mov), line, ch)); }
         if token.eq_ignore_ascii_case(b"put") { return Some((LexToken::LexMnemonic(Mnemonic::Put), line, ch)); }
+        if token.eq_ignore_ascii_case(b"lbeq") { return Some((LexToken::LexMnemonic(Mnemonic::Lbeq), line, ch)); }
+        if token.eq_ignore_ascii_case(b"lblt") { return Some((LexToken::LexMnemonic(Mnemonic::Lblt), line, ch)); }
+        if token.eq_ignore_ascii_case(b"lble") { return Some((LexToken::LexMnemonic(Mnemonic::Lble), line, ch)); }
 
         Some((LexToken::LexLabel(token), line, ch))
     }
