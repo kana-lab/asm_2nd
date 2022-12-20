@@ -84,8 +84,29 @@ pub fn encode(
 ) -> Result<Vec<u32>, EncodeError> {
     let mut binary = vec![];
 
+    // 疑似命令のおかげでアドレスがズレるのでaddress_mapの中身は正確ではなくなる
+    // 二分探索を用いて調整すべし
+    let mut address_padding = 0;
+    let mut padding_info: Vec<(usize, i64)> = vec![];
+
+    // 頼む。。。動いてくれー
+    fn _label_to_addr(
+        address_map: &HashMap<String, i64>, padding_info: &Vec<(usize, i64)>, label: &str,
+    ) -> Option<i64> {
+        let orig_addr = *address_map.get(label)?;
+        let r = padding_info.binary_search_by_key(&(orig_addr as usize), |&(a, b)| a);
+        let pad = match r {
+            Ok(ind) => padding_info[ind].1,
+            Err(ind) => if ind == 0 { 0 } else { padding_info[ind - 1].1 }
+        };
+        Some(orig_addr + pad)
+    }
+
     let it = instructions.into_iter().enumerate();
     for (address, Instruction(mnemonic, operands, line, ch)) in it {
+        let label_to_addr = |label| {
+            _label_to_addr(&address_map, &padding_info, label)
+        };
         let mut b = 0_u32;
 
         // operand's format check
@@ -131,13 +152,13 @@ pub fn encode(
                     let n = n as u8;
                     b |= n as u32;
                 } else if let Operand::OpLabel(s) = &operands[2] {
-                    let dest_addr = address_map.get(s);
+                    let dest_addr = label_to_addr(s);
                     if dest_addr.is_none() {
                         println!("at line {line}, character {ch}: Syntax Error");
                         println!("label \"{}\" not found.", s.clone());
                         return Err(EncodeError::LabelNotFoundError);
                     }
-                    let dest_addr = *dest_addr.unwrap();
+                    let dest_addr = dest_addr.unwrap();
 
                     let n = dest_addr as u8;
                     b |= n as u32;
@@ -212,13 +233,13 @@ pub fn encode(
             }
 
             if let Operand::OpLabel(label) = &operands[2] {
-                let dest_addr = address_map.get(label);
+                let dest_addr = label_to_addr(label);
                 if dest_addr.is_none() {
                     println!("at line {line}, character {ch}: Syntax Error");
                     println!("label \"{}\" not found.", label.clone());
                     return Err(EncodeError::LabelNotFoundError);
                 }
-                let dest_addr = *dest_addr.unwrap();
+                let dest_addr = dest_addr.unwrap();
 
                 let relative_addr = dest_addr - address as i64;
                 if !(-512 <= relative_addr && relative_addr < 512) {
@@ -241,13 +262,13 @@ pub fn encode(
             }
 
             if let Operand::OpLabel(label) = &operands[0] {
-                let dest_addr = address_map.get(label);
+                let dest_addr = label_to_addr(label);
                 if dest_addr.is_none() {
                     println!("at line {line}, character {ch}: Syntax Error");
                     println!("label \"{}\" not found.", label.clone());
                     return Err(EncodeError::LabelNotFoundError);
                 }
-                let dest_addr = *dest_addr.unwrap();
+                let dest_addr = dest_addr.unwrap();
 
                 let relative_addr = dest_addr - address as i64;
                 let lim = 1 << 25;
@@ -342,13 +363,13 @@ pub fn encode(
             if let Operand::OpDigit(n) = operands[0] {
                 b = n as u32;
             } else if let Operand::OpLabel(label) = &operands[0] {
-                let dest_addr = address_map.get(label);
+                let dest_addr = label_to_addr(label);
                 if dest_addr.is_none() {
                     println!("at line {line}, character {ch}: Syntax Error");
                     println!("label \"{}\" not found.", label.clone());
                     return Err(EncodeError::LabelNotFoundError);
                 }
-                let dest_addr = *dest_addr.unwrap();
+                let dest_addr = dest_addr.unwrap();
                 b = dest_addr as u32;  // FIXME: no check if dest_addr exceeds 32bit
             } else {
                 println!("at line {line}, character {ch}: Syntax Error");
@@ -379,13 +400,13 @@ pub fn encode(
             let val = if let Operand::OpDigit(n) = operands[1] {
                 n as u32
             } else if let Operand::OpLabel(label) = &operands[1] {
-                let dest_addr = address_map.get(label);
+                let dest_addr = label_to_addr(label);
                 if dest_addr.is_none() {
                     println!("at line {line}, character {ch}: Syntax Error");
                     println!("label \"{}\" not found.", label.clone());
                     return Err(EncodeError::LabelNotFoundError);
                 }
-                let dest_addr = *dest_addr.unwrap();
+                let dest_addr = dest_addr.unwrap();
                 dest_addr as u32  // FIXME: no check if dest_addr exceeds 32bit
             } else {
                 println!("at line {line}, character {ch}: Syntax Error");
@@ -397,6 +418,9 @@ pub fn encode(
             while val >> (8 * i) > 0 { i += 1; }
             i -= 1;
             binary.push(0x2100ff00 | ((reg_num as u32) << 16) | (val >> (8 * i)));
+
+            address_padding += 2 * i;
+            padding_info.push((address + 1, address_padding));
 
             let b_base = 0x21000000 | ((reg_num as u32) << 16) | ((reg_num as u32) << 8);
             let shift8 = 0x24000000 | ((reg_num as u32) << 16) | ((reg_num as u32) << 8) | 8;
