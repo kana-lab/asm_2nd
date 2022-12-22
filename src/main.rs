@@ -1,9 +1,11 @@
 use std::env::args;
 use std::fs::File;
 use std::io::{BufReader};
-use asm_1st::encoder;
+use asm_1st::encoder::encode;
 use asm_1st::lexer::Lexer;
 use asm_1st::parser::Parser;
+use asm_1st::resolver::resolve_without_optimization;
+use asm_1st::semantics::check_semantics;
 
 fn main() {
     let args: Vec<String> = args().collect();
@@ -24,14 +26,28 @@ fn main() {
     let br = BufReader::new(f);
     let lex = Lexer::new(br);
     let par = Parser::new(lex);
-    let (inst, map) = match par.parse() {
+    // let (inst, map) = match par.parse() {
+    //     Ok(ok) => ok,
+    //     Err(_e) => { return; }
+    // };
+    // let binary = match encoder_old::encode(inst, map) {
+    //     Ok(ok) => ok,
+    //     Err(_e) => { return; }
+    // };
+
+    let (inst, labels) = match par.parse() {
         Ok(ok) => ok,
-        Err(_e) => { return; }
+        Err(_) => { return; }
     };
-    let binary = match encoder::encode(inst, map) {
+    match check_semantics(&inst, &labels) {
+        Ok(()) => {}
+        Err(_) => { return; }
+    }
+    let inst = match resolve_without_optimization(inst) {
         Ok(ok) => ok,
-        Err(_e) => { return; }
+        Err(_) => { return; }
     };
+    let binary = encode(inst);
 
     // let mut g = match File::create("asm.out") {
     //     Ok(f) => f,

@@ -1,10 +1,10 @@
-use std::collections::HashMap;
+use std::collections::HashSet;
 use std::io::Read;
 use std::iter::Peekable;
 use std::str::from_utf8;
 use crate::lexer::{Lexer, LexToken, Mnemonic, Register};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Operand {
     OpRegister(Register),
     OpLabel(String),
@@ -12,7 +12,13 @@ pub enum Operand {
 }
 
 #[derive(Debug)]
-pub struct Instruction(pub Mnemonic, pub Vec<Operand>, pub usize, pub usize);
+pub struct Instruction {
+    pub label: Option<String>,
+    pub mnemonic: Mnemonic,
+    pub operands: Vec<Operand>,
+    pub line: usize,
+    pub ch: usize,
+}
 
 #[derive(Debug)]
 pub enum ParseError {
@@ -23,7 +29,7 @@ pub enum ParseError {
 pub struct Parser<T: Read> {
     lexer: Peekable<Lexer<T>>,
     instructions: Vec<Instruction>,
-    labels: HashMap<String, i64>,
+    labels: HashSet<String>,
     line: usize,
     character: usize,
 }
@@ -33,13 +39,13 @@ impl<T: Read> Parser<T> {
         Self {
             lexer: lexer.peekable(),
             instructions: vec![],
-            labels: HashMap::new(),
+            labels: HashSet::new(),
             line: 1,
             character: 1,
         }
     }
 
-    pub fn parse(mut self) -> Result<(Vec<Instruction>, HashMap<String, i64>), ParseError> {
+    pub fn parse(mut self) -> Result<(Vec<Instruction>, HashSet<String>), ParseError> {
         self.asm_program()?;
         let Parser { instructions, labels, .. } = self;
         Ok((instructions, labels))
@@ -96,12 +102,13 @@ impl<T: Read> Parser<T> {
     }
 
     fn labeled_single_instr(&mut self) -> Result<(), ParseError> {
+        let mut label_str = None;
+
         let a = self.peek()?;
         if let LexToken::LexLabel(label) = a {
-            self.labels.insert(
-                from_utf8(&label).unwrap().to_string(),
-                self.instructions.len() as i64,
-            );
+            let s = from_utf8(&label).unwrap().to_string();
+            self.labels.insert(s.clone());
+            label_str = Some(s);
             self.lexer.next();
 
             let a = self.peek()?;
@@ -116,10 +123,10 @@ impl<T: Read> Parser<T> {
             }
         }
 
-        self.single_instr()
+        self.single_instr(label_str)
     }
 
-    fn single_instr(&mut self) -> Result<(), ParseError> {
+    fn single_instr(&mut self, label: Option<String>) -> Result<(), ParseError> {
         let a = self.peek()?;
         let (line, ch) = (self.line, self.character);
         if let LexToken::LexMnemonic(mnemonic) = a {
@@ -130,7 +137,7 @@ impl<T: Read> Parser<T> {
 
             self.operand_list(&mut operands)?;
 
-            self.instructions.push(Instruction(mnemonic, operands, line, ch));
+            self.instructions.push(Instruction { label, mnemonic, operands, line, ch });
             return Ok(());
         }
 
