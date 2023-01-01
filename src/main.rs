@@ -1,13 +1,14 @@
 use std::env::args;
 use std::fs::File;
 use std::io::{BufReader};
+use std::thread;
 use asm_1st::encoder::encode;
 use asm_1st::lexer::Lexer;
 use asm_1st::parser::Parser;
 use asm_1st::resolver::resolve_without_optimization;
 use asm_1st::semantics::check_semantics;
 
-fn main() {
+fn main_inner() {
     let args: Vec<String> = args().collect();
     if args.len() != 2 {
         println!("[usage:] ./asm_1st path/to/assembly");
@@ -67,4 +68,11 @@ fn main() {
     for b in binary {
         println!("{:<08x}", b);
     }
+}
+
+fn main() {
+    let stack_size = 100_000_000usize;
+    thread::Builder::new().stack_size(stack_size).spawn(move || {
+        main_inner()
+    }).unwrap().join().unwrap();
 }
