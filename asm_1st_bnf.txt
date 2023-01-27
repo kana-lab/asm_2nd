@@ -28,7 +28,7 @@ single_instr:
 
 labeled_single_instr:
     single_instr
-	label ":" "\n"* single_instr
+	label ":" "\n"* labeled_single_instr
 
 asm_program_line:
 	EOF

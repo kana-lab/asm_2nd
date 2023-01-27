@@ -24,7 +24,7 @@ pub fn resolve_without_optimization(
     for (address, Instruction { label, mnemonic, .. }) in it {
         let mnemonic = *mnemonic;
 
-        if let Some(s) = label {
+        for s in label {
             addr_map.insert(s.clone(), address as i64 + addr_padding);
         }
 
@@ -78,7 +78,7 @@ pub fn resolve_without_optimization(
         } else if mnemonic == Put {
             if let Operand::OpLabel(label) = &operands[0] {
                 let dest_addr = *addr_map.get(label).unwrap();
-                operands[2] = Operand::OpDigit(dest_addr);
+                operands[0] = Operand::OpDigit(dest_addr);
             }
         } else if mnemonic == Mov {
             let reg = operands[0].clone();
@@ -93,12 +93,12 @@ pub fn resolve_without_optimization(
             ];
             let slli = vec![reg.clone(), reg.clone(), OpDigit(8)];
             for i in 0..3 {
-                instr.push(Instruction { label: None, mnemonic: Addi, operands: new_operands.clone(), line, ch });
-                instr.push(Instruction { label: None, mnemonic: Slli, operands: slli.clone(), line, ch });
+                instr.push(Instruction { label: vec![], mnemonic: Addi, operands: new_operands.clone(), line, ch });
+                instr.push(Instruction { label: vec![], mnemonic: Slli, operands: slli.clone(), line, ch });
                 new_operands[1] = reg.clone();
                 new_operands[2] = Operand::OpDigit((val as i64 >> (8 * (2 - i))) & 0xff);
             }
-            instr.push(Instruction { label: None, mnemonic: Addi, operands: new_operands, line, ch });
+            instr.push(Instruction { label: vec![], mnemonic: Addi, operands: new_operands, line, ch });
             continue;
         } else if mnemonic == Lbeq || mnemonic == Lblt || mnemonic == Lble {
             if let Operand::OpLabel(label) = &operands[2] {
@@ -107,21 +107,21 @@ pub fn resolve_without_optimization(
 
                 if mnemonic == Lbeq {
                     operands[2] = Operand::OpDigit(2);
-                    instr.push(Instruction { label: None, mnemonic: Beq, operands, line, ch });
-                    instr.push(Instruction { label: None, mnemonic: J, operands: vec![OpDigit(2)], line, ch });
-                    instr.push(Instruction { label: None, mnemonic: J, operands: vec![OpDigit(relative_addr - 2)], line, ch });
+                    instr.push(Instruction { label: vec![], mnemonic: Beq, operands, line, ch });
+                    instr.push(Instruction { label: vec![], mnemonic: J, operands: vec![OpDigit(2)], line, ch });
+                    instr.push(Instruction { label: vec![], mnemonic: J, operands: vec![OpDigit(relative_addr - 2)], line, ch });
                 } else {
                     let mnemonic = if mnemonic == Lblt { Ble } else { Blt };
                     (operands[0], operands[1]) = (operands[1].clone(), operands[0].clone());
                     operands[2] = OpDigit(2);
-                    instr.push(Instruction { label: None, mnemonic, operands, line, ch });
-                    instr.push(Instruction { label: None, mnemonic: J, operands: vec![OpDigit(relative_addr - 1)], line, ch });
+                    instr.push(Instruction { label: vec![], mnemonic, operands, line, ch });
+                    instr.push(Instruction { label: vec![], mnemonic: J, operands: vec![OpDigit(relative_addr - 1)], line, ch });
                 }
             }
             continue;
         }
 
-        instr.push(Instruction { label: None, mnemonic, operands, line, ch });
+        instr.push(Instruction { label: vec![], mnemonic, operands, line, ch });
     }
 
     Ok(instr)

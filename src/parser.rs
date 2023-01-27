@@ -13,7 +13,7 @@ pub enum Operand {
 
 #[derive(Debug)]
 pub struct Instruction {
-    pub label: Option<String>,
+    pub label: Vec<String>,
     pub mnemonic: Mnemonic,
     pub operands: Vec<Operand>,
     pub line: usize,
@@ -84,7 +84,7 @@ impl<T: Read> Parser<T> {
             return Ok(());
         }
 
-        self.labeled_single_instr()?;
+        self.labeled_single_instr(vec![])?;
 
         let a = self.peek()?;
         if a == LexToken::LexEof || a == LexToken::LexNewline {
@@ -101,19 +101,17 @@ impl<T: Read> Parser<T> {
         Err(ParseError::MalformedSentenceError)
     }
 
-    fn labeled_single_instr(&mut self) -> Result<(), ParseError> {
-        let mut label_str = None;
-
+    fn labeled_single_instr(&mut self, mut labels: Vec<String>) -> Result<(), ParseError> {
         let a = self.peek()?;
         if let LexToken::LexLabel(label) = a {
             let s = from_utf8(&label).unwrap().to_string();
             self.labels.insert(s.clone());
-            label_str = Some(s);
+            labels.push(s);
             self.lexer.next();
 
             let a = self.peek()?;
             if a != LexToken::LexColon {
-                self.print_err("expected a semicolon after a label.");
+                self.print_err("expected a colon after a label.");
                 return Err(ParseError::MalformedSentenceError);
             }
             self.lexer.next();
@@ -121,12 +119,14 @@ impl<T: Read> Parser<T> {
             while self.peek()? == LexToken::LexNewline {
                 self.lexer.next();
             }
+
+            return self.labeled_single_instr(labels);
         }
 
-        self.single_instr(label_str)
+        self.single_instr(labels)
     }
 
-    fn single_instr(&mut self, label: Option<String>) -> Result<(), ParseError> {
+    fn single_instr(&mut self, label: Vec<String>) -> Result<(), ParseError> {
         let a = self.peek()?;
         let (line, ch) = (self.line, self.character);
         if let LexToken::LexMnemonic(mnemonic) = a {
