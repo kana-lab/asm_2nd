@@ -54,7 +54,7 @@ pub fn resolve_without_optimization(
             if let Operand::OpLabel(label) = &operands[2] {
                 let dest_addr = *addr_map.get(label).unwrap();
                 let relative_addr = dest_addr - instr.len() as i64;
-                if !(512 <= relative_addr && relative_addr < 512) {
+                if !(-512 <= relative_addr && relative_addr < 512) {
                     println!("at line {line}, character {ch}: Warning");
                     println!("label \"{}\" is too far to jump.", label.clone());
                     return Err(ResolutionError::LabelTooFarError);
