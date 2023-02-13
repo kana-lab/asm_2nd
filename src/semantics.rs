@@ -67,22 +67,37 @@ fn confirm(
 
 pub fn is_arithmetic(m: Mnemonic) -> bool {
     match m {
-        Add | Sub | Sll | Srl | Sra | Addi | Subi | Slli | Srli | Srai |
-        Fadd | Fsub | Fmul | Fdiv | Fless => true,
+        Add | Sub | Addi | Subi | Slli |
+        Fadd | Fsub | Fmul | Fdiv => true,
         _ => false
     }
 }
 
 pub fn is_arithmetic_ext(m: Mnemonic) -> bool {
     match m {
-        Fispos | Fisneg | Fneg | Ftoi | Itof | Fsqrt => true,
+        Fabs | Fneg | Fsqrt | Itof | Ftoi => true,
         _ => false
     }
 }
 
 pub fn is_arithmetic_imm(m: Mnemonic) -> bool {
     match m {
-        Addi | Subi | Slli | Srli | Srai => true,
+        Addi | Subi | Slli => true,
+        _ => false
+    }
+}
+
+pub fn is_conditional_branch(m: Mnemonic) -> bool {
+    match m {
+        Ibeq | Ibne | Ible | Iblt | Fblt | Fble |
+        Libeq | Libne | Lible | Liblt | Lfblt | Lfble => true,
+        _ => false
+    }
+}
+
+pub fn is_conditional_branch_ext(m: Mnemonic) -> bool {
+    match m {
+        Fbps | Fbng | Lfbps | Lfbng => true,
         _ => false
     }
 }
@@ -95,11 +110,11 @@ pub fn check_semantics(
 
         if is_arithmetic(mnemonic) {
             if is_arithmetic_imm(mnemonic) {
-                confirm(operands, &vec![REGISTER, REGISTER, LABEL | DIGIT], labels, line, ch)?;
+                confirm(operands, &vec![REGISTER, REGISTER, DIGIT], labels, line, ch)?;
 
                 if let Operand::OpDigit(n) = operands[2] {
-                    if !(-256 < n && n < 256) {
-                        println!("at line {line}, character {ch}: Warning");
+                    if !(0 <= n && n < 256) {
+                        println!("at line {line}, character {ch}: Error");
                         println!("the number exceeds the size of 8bit integer.");
                         return Err(SemanticError::ImmTooLargeError);
                     }
@@ -110,34 +125,93 @@ pub fn check_semantics(
 
             if let Operand::OpRegister(r) = operands[0] {
                 if let Register::Zero = r {
-                    println!("at line {line}, character {ch}: Warning");
+                    println!("at line {line}, character {ch}: Error");
                     println!("substitution to zero register is meaningless.");
                     return Err(SemanticError::SubstitutionToZeroError);
                 }
             }
-        } else if is_arithmetic_ext(mnemonic) || mnemonic == Lw {
+        } else if is_arithmetic_ext(mnemonic) {
             confirm(operands, &vec![REGISTER, REGISTER], labels, line, ch)?;
 
             if let Operand::OpRegister(r) = operands[0] {
                 if let Register::Zero = r {
-                    println!("at line {line}, character {ch}: Warning");
+                    println!("at line {line}, character {ch}: Error");
                     println!("substitution to zero register is meaningless.");
                     return Err(SemanticError::SubstitutionToZeroError);
                 }
             }
-        } else if mnemonic == Beq || mnemonic == Blt || mnemonic == Ble ||
-            mnemonic == Lbeq || mnemonic == Lblt || mnemonic == Lble {
+        } else if is_conditional_branch(mnemonic) {
             confirm(operands, &vec![REGISTER, REGISTER, LABEL], labels, line, ch)?;
-        } else if mnemonic == J {
+        } else if is_conditional_branch_ext(mnemonic) {
+            confirm(operands, &vec![REGISTER, LABEL], labels, line, ch)?;
+        } else if mnemonic == J || mnemonic == Call {
             confirm(operands, &vec![LABEL], labels, line, ch)?;
-        } else if mnemonic == Jr {
+            // } else if mnemonic == Ret {
+            //     confirm(operands, &vec![DIGIT], labels, line, ch)?;
+            //
+            //     // immの範囲
+            //     if let Operand::OpDigit(n) = operands[0] {
+            //         if !(-32768 <= n && n < 32768) {
+            //             println!("at line {line}, character {ch}: Error");
+            //             println!("the number exceeds the size of 16bit integer.");
+            //             return Err(SemanticError::ImmTooLargeError);
+            //         }
+            //     }
+        } else if mnemonic == Jr || mnemonic == Usend {
             confirm(operands, &vec![REGISTER], labels, line, ch)?;
+        } else if mnemonic == Urecv {
+            confirm(operands, &vec![REGISTER], labels, line, ch)?;
+
+            // zeroレジスタ
+            if let Operand::OpRegister(r) = operands[0] {
+                if let Register::Zero = r {
+                    println!("at line {line}, character {ch}: Error");
+                    println!("substitution to zero register is meaningless.");
+                    return Err(SemanticError::SubstitutionToZeroError);
+                }
+            }
+        } else if mnemonic == Lw {
+            confirm(operands, &vec![REGISTER, REGISTER, DIGIT], labels, line, ch)?;
+
+            // immの範囲
+            if let Operand::OpDigit(n) = operands[2] {
+                if !(0 <= n && n < 256) {
+                    println!("at line {line}, character {ch}: Error");
+                    println!("the number exceeds the size of 16bit integer.");
+                    return Err(SemanticError::ImmTooLargeError);
+                }
+            }
+
+            // zeroレジスタ
+            if let Operand::OpRegister(r) = operands[0] {
+                if let Register::Zero = r {
+                    println!("at line {line}, character {ch}: Error");
+                    println!("substitution to zero register is meaningless.");
+                    return Err(SemanticError::SubstitutionToZeroError);
+                }
+            }
         } else if mnemonic == Sw {
-            confirm(operands, &vec![REGISTER, REGISTER], labels, line, ch)?;
-        } else if mnemonic == Put {
-            confirm(operands, &vec![DIGIT | LABEL], labels, line, ch)?;
-        } else if mnemonic == Mov {
+            confirm(operands, &vec![REGISTER, REGISTER, DIGIT], labels, line, ch)?;
+
+            // immの範囲
+            if let Operand::OpDigit(n) = operands[2] {
+                if !(0 <= n && n < 256) {
+                    println!("at line {line}, character {ch}: Error");
+                    println!("the number exceeds the size of 16bit integer.");
+                    return Err(SemanticError::ImmTooLargeError);
+                }
+            }
+        } else if mnemonic == Movl || mnemonic == Movh {
             confirm(operands, &vec![REGISTER, DIGIT | LABEL], labels, line, ch)?;
+
+            // immの範囲
+            if let Operand::OpDigit(n) = operands[1] {
+                if !(0 <= n && n < 65536) {
+                    println!("at line {line}, character {ch}: Error");
+                    println!("the number exceeds the size of 16bit integer.");
+                    return Err(SemanticError::ImmTooLargeError);
+                }
+            }
         }
     }
 

@@ -2,7 +2,7 @@ use crate::lexer::{Mnemonic, Register};
 use crate::lexer::Mnemonic::*;
 use crate::parser::Instruction;
 use crate::parser::Operand::*;
-use crate::semantics::{is_arithmetic, is_arithmetic_ext, is_arithmetic_imm};
+use crate::semantics::{is_arithmetic, is_arithmetic_ext, is_arithmetic_imm, is_conditional_branch, is_conditional_branch_ext};
 
 fn get_register_num(r: Register) -> u8 {
     match r {
@@ -17,34 +17,36 @@ fn get_op_funct(m: Mnemonic) -> u32 {
     match m {
         Add => 0x01000000,
         Sub => 0x02000000,
-        Sll => 0x09000000,
-        Srl => 0x0a000000,
-        Sra => 0x0c000000,
-        Fispos => 0x11000000,
-        Fisneg => 0x12000000,
-        Fneg => 0x14000000,
         Addi => 0x21000000,
         Subi => 0x22000000,
         Slli => 0x24000000,
-        Srli => 0x28000000,
-        Srai => 0x30000000,
+        Fabs => 0x04000000,
+        Fneg => 0x08000000,
         Fadd => 0x41000000,
         Fsub => 0x42000000,
         Fmul => 0x44000000,
         Fdiv => 0x48000000,
-        Fless => 0x51000000,
         Ftoi => 0x52000000,
         Itof => 0x54000000,
         Fsqrt => 0x58000000,
-        Beq => 0x84000000,
-        Blt => 0x88000000,
-        Ble => 0x90000000,
-        J => 0xa0000000,
-        Jr => 0xa4000000,
-        Lw => 0xe0000000,
-        Sw => 0xc0000000,
-        Put => 0,
-        Mov | Lbeq | Lblt | Lble => unreachable!()
+        Ibeq => 0x80000000,
+        Ibne => 0x88000000,
+        Iblt => 0x90000000,
+        Ible => 0x98000000,
+        Fblt => 0xa0000000,
+        Fble => 0xa8000000,
+        Fbps => 0xb0000000,
+        Fbng => 0xb8000000,
+        J => 0xc1000000,
+        Jr => 0xc2000000,
+        Call => 0xc4000000,
+        Movl => 0x31000000,
+        Movh => 0x32000000,
+        Urecv => 0xe0000000,
+        Usend => 0x60000000,
+        Lw => 0xe1000000,
+        Sw => 0x61000000,
+        _ => unreachable!()
     }
 }
 
@@ -75,22 +77,32 @@ pub fn encode(instructions: Vec<Instruction>) -> Vec<u32> {
         } else if is_arithmetic_ext(mnemonic) {
             b |= (get_register_num(cast!(operands[0], OpRegister)) as u32) << 16;
             b |= get_register_num(cast!(operands[1], OpRegister)) as u32;
-        } else if mnemonic == Beq || mnemonic == Blt || mnemonic == Ble {
+        } else if is_conditional_branch(mnemonic) {
             b |= (get_register_num(cast!(operands[0], OpRegister)) as u32) << 8;
             b |= get_register_num(cast!(operands[1], OpRegister)) as u32;
-            b |= ((cast!(operands[2], OpDigit) as u32) << 16) & 0x03ffffff;
-        } else if mnemonic == J {
-            b |= (cast!(operands[0], OpDigit) as u32) & 0x03ffffff;
-        } else if mnemonic == Jr {
+            b |= ((cast!(operands[2], OpDigit) as u32) << 16) & 0x07ffffff;
+        } else if is_conditional_branch_ext(mnemonic) {
+            b |= (get_register_num(cast!(operands[0], OpRegister)) as u32);
+            b |= ((cast!(operands[1], OpDigit) as u32) << 16) & 0x07ffffff;
+        } else if mnemonic == J || mnemonic == Call {
+            b |= (cast!(operands[0], OpDigit) as u32) & 0x0000ffff;
+        } else if mnemonic == Jr || mnemonic == Usend {
             b |= get_register_num(cast!(operands[0], OpRegister)) as u32;
+        } else if mnemonic == Movl || mnemonic == Movh {
+            b |= (get_register_num(cast!(operands[0], OpRegister)) as u32) << 16;
+            b |= (cast!(operands[1], OpDigit) as u32) & 0x0000ffff;
+        } else if mnemonic == Urecv {
+            b |= (get_register_num(cast!(operands[0], OpRegister)) as u32) << 16;
         } else if mnemonic == Lw {
             b |= (get_register_num(cast!(operands[0], OpRegister)) as u32) << 16;
             b |= get_register_num(cast!(operands[1], OpRegister)) as u32;
+            b |= ((cast!(operands[2], OpDigit) as u32) << 8) & 0x0000ff00;  // 8bitを超えない保証はあるが怖い
         } else if mnemonic == Sw {
             b |= (get_register_num(cast!(operands[0], OpRegister)) as u32) << 8;
             b |= get_register_num(cast!(operands[1], OpRegister)) as u32;
-        } else if mnemonic == Put {
-            b = cast!(operands[0], OpDigit) as u32;
+            b |= ((cast!(operands[2], OpDigit) as u32) << 16) & 0x00ff0000;  // 8bitを超えない保証はあるが怖い
+            // } else if mnemonic == Put {
+            //     b = cast!(operands[0], OpDigit) as u32;
         } else {
             unreachable!();
         }
