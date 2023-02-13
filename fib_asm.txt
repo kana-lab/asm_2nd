@@ -10,6 +10,6 @@ LOOP:
     add r1, zero, r0
     add r0, r1, r2
     addi r10, r10, 1
-    blt r10, r11, LOOP
+    iblt r10, r11, LOOP
 HALT:
     j HALT
