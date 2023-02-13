@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 use crate::lexer::Mnemonic::*;
-use crate::lexer::Mnemonic;
+use crate::lexer::{Mnemonic, Register};
 use crate::parser::{Instruction, Operand};
-use crate::parser::Operand::OpDigit;
+use crate::parser::Operand::{OpDigit, OpRegister};
 use crate::semantics::{is_conditional_branch, is_conditional_branch_ext};
 
 pub enum ResolutionError {
@@ -50,8 +50,12 @@ pub fn resolve_without_optimization(
         }
 
         if mnemonic == Libeq || mnemonic == Libne || mnemonic == Liblt || mnemonic == Lible ||
-            mnemonic == Lfblt || mnemonic == Lfble || mnemonic == Lfbps || mnemonic == Lfbng {
+            mnemonic == Lfblt || mnemonic == Lfble {
             addr_padding += 1;
+        }
+
+        if mnemonic == Lfbps || mnemonic == Lfbng {
+            addr_padding += 2;
         }
     }
 
@@ -129,9 +133,12 @@ pub fn resolve_without_optimization(
                 let relative_addr = dest_addr - instr.len() as i64;
 
                 let mnemonic = neg_pseudo_branch_instr(mnemonic);
-                operands[1] = OpDigit(2);
+                let reg_saved = operands[0].clone();
+                operands[1] = OpDigit(3);
                 instr.push(Instruction { label: vec![], mnemonic, operands, line, ch });
-                instr.push(Instruction { label: vec![], mnemonic: J, operands: vec![OpDigit(relative_addr - 1)], line, ch });
+                let operands = vec![reg_saved, OpRegister(Register::Zero), OpDigit(2)];
+                instr.push(Instruction { label: vec![], mnemonic: Ibeq, operands, line, ch });
+                instr.push(Instruction { label: vec![], mnemonic: J, operands: vec![OpDigit(relative_addr - 2)], line, ch });
             }
             continue;
         } else if mnemonic == Movl || mnemonic == Movh {

@@ -349,8 +349,8 @@ impl<T: Read> Iterator for Lexer<T> {
         if token.eq_ignore_ascii_case(b"liblt") { return Some((LexToken::LexMnemonic(Mnemonic::Liblt), line, ch)); }
         if token.eq_ignore_ascii_case(b"lfblt") { return Some((LexToken::LexMnemonic(Mnemonic::Lfblt), line, ch)); }
         if token.eq_ignore_ascii_case(b"lfble") { return Some((LexToken::LexMnemonic(Mnemonic::Lfble), line, ch)); }
-        // if token.eq_ignore_ascii_case(b"lfbps") { return Some((LexToken::LexMnemonic(Mnemonic::Lfbps), line, ch)); }
-        // if token.eq_ignore_ascii_case(b"lfbng") { return Some((LexToken::LexMnemonic(Mnemonic::Lfbng), line, ch)); }
+        if token.eq_ignore_ascii_case(b"lfbps") { return Some((LexToken::LexMnemonic(Mnemonic::Lfbps), line, ch)); }
+        if token.eq_ignore_ascii_case(b"lfbng") { return Some((LexToken::LexMnemonic(Mnemonic::Lfbng), line, ch)); }
 
         Some((LexToken::LexLabel(token), line, ch))
     }
