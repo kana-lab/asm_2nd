@@ -42,10 +42,10 @@ fn get_op_funct(m: Mnemonic) -> u32 {
         Call => 0xc4000000,
         Movl => 0x31000000,
         Movh => 0x32000000,
-        Urecv => 0xe0000000,
-        Usend => 0x60000000,
-        Lw => 0xe1000000,
-        Sw => 0x61000000,
+        Urecv => 0x60000000,
+        Usend => 0xe0000000,
+        Lw => 0x61000000,
+        Sw => 0xe1000000,
         _ => unreachable!()
     }
 }
