@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 use crate::lexer::Mnemonic::*;
-use crate::lexer::{Mnemonic, Register};
+use crate::lexer::Mnemonic;
 use crate::parser::{Instruction, Operand};
 use crate::parser::Operand::OpDigit;
-use crate::semantics::{is_arithmetic_imm, is_conditional_branch, is_conditional_branch_ext};
+use crate::semantics::{is_conditional_branch, is_conditional_branch_ext};
 
 pub enum ResolutionError {
     ImmTooLargeError,

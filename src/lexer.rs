@@ -329,6 +329,7 @@ impl<T: Read> Iterator for Lexer<T> {
         if token.eq_ignore_ascii_case(b"ibne") { return Some((LexToken::LexMnemonic(Mnemonic::Ibne), line, ch)); }
         if token.eq_ignore_ascii_case(b"ible") { return Some((LexToken::LexMnemonic(Mnemonic::Ible), line, ch)); }
         if token.eq_ignore_ascii_case(b"iblt") { return Some((LexToken::LexMnemonic(Mnemonic::Iblt), line, ch)); }
+        if token.eq_ignore_ascii_case(b"fble") { return Some((LexToken::LexMnemonic(Mnemonic::Fble), line, ch)); }
         if token.eq_ignore_ascii_case(b"fblt") { return Some((LexToken::LexMnemonic(Mnemonic::Fblt), line, ch)); }
         if token.eq_ignore_ascii_case(b"fbps") { return Some((LexToken::LexMnemonic(Mnemonic::Fbps), line, ch)); }
         if token.eq_ignore_ascii_case(b"fbng") { return Some((LexToken::LexMnemonic(Mnemonic::Fbng), line, ch)); }
@@ -348,8 +349,8 @@ impl<T: Read> Iterator for Lexer<T> {
         if token.eq_ignore_ascii_case(b"liblt") { return Some((LexToken::LexMnemonic(Mnemonic::Liblt), line, ch)); }
         if token.eq_ignore_ascii_case(b"lfblt") { return Some((LexToken::LexMnemonic(Mnemonic::Lfblt), line, ch)); }
         if token.eq_ignore_ascii_case(b"lfble") { return Some((LexToken::LexMnemonic(Mnemonic::Lfble), line, ch)); }
-        if token.eq_ignore_ascii_case(b"lfbps") { return Some((LexToken::LexMnemonic(Mnemonic::Lfbps), line, ch)); }
-        if token.eq_ignore_ascii_case(b"lfbng") { return Some((LexToken::LexMnemonic(Mnemonic::Lfbng), line, ch)); }
+        // if token.eq_ignore_ascii_case(b"lfbps") { return Some((LexToken::LexMnemonic(Mnemonic::Lfbps), line, ch)); }
+        // if token.eq_ignore_ascii_case(b"lfbng") { return Some((LexToken::LexMnemonic(Mnemonic::Lfbng), line, ch)); }
 
         Some((LexToken::LexLabel(token), line, ch))
     }

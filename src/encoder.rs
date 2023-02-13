@@ -82,7 +82,7 @@ pub fn encode(instructions: Vec<Instruction>) -> Vec<u32> {
             b |= get_register_num(cast!(operands[1], OpRegister)) as u32;
             b |= ((cast!(operands[2], OpDigit) as u32) << 16) & 0x07ffffff;
         } else if is_conditional_branch_ext(mnemonic) {
-            b |= (get_register_num(cast!(operands[0], OpRegister)) as u32);
+            b |= get_register_num(cast!(operands[0], OpRegister)) as u32;
             b |= ((cast!(operands[1], OpDigit) as u32) << 16) & 0x07ffffff;
         } else if mnemonic == J || mnemonic == Call {
             b |= (cast!(operands[0], OpDigit) as u32) & 0x0000ffff;
