@@ -48,6 +48,8 @@ pub enum Mnemonic {
     Usend,
     Lw,
     Sw,
+    // Lwn,
+    // Swn,
     Libeq,
     Libne,
     Liblt,
@@ -343,6 +345,8 @@ impl<T: Read> Iterator for Lexer<T> {
         if token.eq_ignore_ascii_case(b"usend") { return Some((LexToken::LexMnemonic(Mnemonic::Usend), line, ch)); }
         if token.eq_ignore_ascii_case(b"lw") { return Some((LexToken::LexMnemonic(Mnemonic::Lw), line, ch)); }
         if token.eq_ignore_ascii_case(b"sw") { return Some((LexToken::LexMnemonic(Mnemonic::Sw), line, ch)); }
+        // if token.eq_ignore_ascii_case(b"lwn") { return Some((LexToken::LexMnemonic(Mnemonic::Lwn), line, ch)); }
+        // if token.eq_ignore_ascii_case(b"swn") { return Some((LexToken::LexMnemonic(Mnemonic::Swn), line, ch)); }
         if token.eq_ignore_ascii_case(b"libeq") { return Some((LexToken::LexMnemonic(Mnemonic::Libeq), line, ch)); }
         if token.eq_ignore_ascii_case(b"libne") { return Some((LexToken::LexMnemonic(Mnemonic::Libne), line, ch)); }
         if token.eq_ignore_ascii_case(b"lible") { return Some((LexToken::LexMnemonic(Mnemonic::Lible), line, ch)); }
